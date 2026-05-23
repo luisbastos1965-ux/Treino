@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IronProgress - O Meu Ginásio</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #38bdf8;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 15px; padding-bottom: 80px; }
+        
+        header { text-align: center; margin-bottom: 20px; padding: 10px; }
+        header h1 { color: var(--accent-color); font-size: 24px; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; background: var(--card-bg); border: 2px solid transparent; color: var(--text-color); font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .tab-btn.active { border-color: var(--accent-color); color: var(--accent-color); background: #1e293b; }
+
+        .exercise-card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .exercise-name { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+        .exercise-note { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; font-style: italic; }
+        
+        .history-badge { background: #334155; padding: 6px 10px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; display: inline-block; color: var(--accent-color); }
+
+        .sets-container { display: flex; flex-direction: column; gap: 8px; }
+        .set-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #334155; padding: 8px; border-radius: 8px; }
+        .set-num { font-weight: bold; width: 60px; font-size: 14px; }
+        .inputs-group { display: flex; gap: 8px; align-items: center; }
+        .inputs-group input { width: 70px; padding: 6px; border: none; border-radius: 4px; background: var(--bg-color); color: white; text-align: center; font-size: 14px; }
+        .inputs-group span { font-size: 12px; color: var(--text-muted); }
+
+        .footer-action { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-color); padding: 15px; box-shadow: 0 -10px 20px rgba(0,0,0,0.3); }
+        .save-btn { width: 100%; max-width: 500px; margin: 0 auto; display: block; padding: 15px; background: var(--success); border: none; color: white; font-weight: bold; font-size: 16px; border-radius: 10px; cursor: pointer; }
+        .save-btn:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>💪 IronProgress</h1>
+        <p style="color: var(--text-muted); font-size: 13px;">Foco na Sobrecarga Progressiva</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchWorkout('PUSH')">PUSH</button>
+        <button class="tab-btn" onclick="switchWorkout('PULL')">PULL</button>
+        <button class="tab-btn" onclick="switchWorkout('LEGS')">LEGS</button>
+    </div>
+
+    <div id="workout-container"></div>
+
+    <div class="footer-action">
+        <button class="save-btn" onclick="saveCurrentWorkout()">Gravar Treino de Hoje</button>
+    </div>
+
+    <script>
+        // Estrutura de treinos planeada
+        const workoutData = {
+            PUSH: [
+                { name: "Supino Inclinado com Halteres", sets: 3, note: "Foco na porção superior do peito. Controla a descida." },
+                { name: "Supino Plano na Máquina", sets: 3, note: "Tensão constante no peito. Vai até à falha em segurança." },
+                { name: "Press Militar com Halteres", sets: 3, note: "Sentado. Foco no ombro anterior." },
+                { name: "Elevações Laterais na Polia", sets: 4, note: "Tensão constante. Essencial para dar largura." },
+                { name: "Tríceps à Testa com Halteres", sets: 3, note: "Excelente para a cabeça longa do tríceps." },
+                { name: "Tríceps na Polia com Corda", sets: 3, note: "Máxima contração no final do movimento." }
+            ],
+            PULL: [
+                { name: "Puxada Vertical na Polia Alta", sets: 3, note: "Puxa com os cotovelos, focando nas dorsais." },
+                { name: "Remada Sentada com Cabo", sets: 3, note: "Pega neutra. Espreme as escápulas atrás." },
+                { name: "Remada Inclinada c/ Halteres (no Banco)", sets: 3, note: "Deitado de barriga no banco a 30º. Zero batota." },
+                { name: "Voos Posteriores na Polia/Halteres", sets: 4, note: "Foco no deltoide posterior (ombro 3D)." },
+                { name: "Curl de Bíceps Inclinado", sets: 3, note: "Sentado no banco a 45º para máximo alongamento." },
+                { name: "Curl Martelo com Halteres", sets: 3, note: "Trabalha o braquial e antebraço." }
+            ],
+            LEGS: [
+                { name: "Agachamento na Hack / Leg Press", sets: 4, note: "Leva as pernas ao limite sem fadiga na lombar." },
+                { name: "Peso Morto Romeno (RDL)", sets: 3, note: "Controla a descida, foca nos femorais e glúteos." },
+                { name: "Extensão de Pernas", sets: 3, note: "Isolamento de quadríceps. Aguenta 1s no topo." },
+                { name: "Flexão de Pernas (Leg Curl)", sets: 3, note: "Isolamento de femorais." },
+                { name: "Elevação de Gémeos em Pé", sets: 4, note: "Pausa de 2s no ponto mais baixo (alongamento)." }
+            ]
+        };
+
+        let currentDay = 'PUSH';
+
+        // Carrega o histórico completo do LocalStorage ou inicia vazio
+        let history = JSON.parse(localStorage.getItem('gym_history')) || [];
+
+        function switchWorkout(day) {
+            currentDay = day;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderWorkout();
+        }
+
+        // Função para encontrar a última performance de um exercício específico
+        function getLastPerformance(exerciseName) {
+            // Corre o histórico de trás para a frente para encontrar o mais recente
+            for (let i = history.length - 1; i >= 0; i--) {
+                const log = history[i];
+                if (log.exercises && log.exercises[exerciseName]) {
+                    return log.exercises[exerciseName];
+                }
+            }
+            return null;
+        }
+
+        function renderWorkout() {
+            const container = document.getElementById('workout-container');
+            container.innerHTML = '';
+            
+            const exercises = workoutData[currentDay];
+
+            exercises.forEach((ex, exIdx) => {
+                const lastPerf = getLastPerformance(ex.name);
+                let historyHTML = lastPerf 
+                    ? `<div class="history-badge">Anterior: ${lastPerf.map((s, i) => `S${i+1}: ${s.weight}kg x ${s.reps}`).join(' | ')}</div>`
+                    : `<div class="history-badge">Anterior: Sem registo ainda</div>`;
+
+                let setsHTML = '';
+                for (let s = 1; s <= ex.sets; s++) {
+                    // Tenta preencher com o valor anterior para facilitar, ou deixa vazio
+                    const prevWeight = lastPerf && lastPerf[s-1] ? lastPerf[s-1].weight : '';
+                    const prevReps = lastPerf && lastPerf[s-1] ? lastPerf[s-1].reps : '';
+
+                    setsHTML += `
+                        <div class="set-row">
+                            <span class="set-num">Série ${s}</span>
+                            <div class="inputs-group">
+                                <input type="number" step="any" id="weight-${exIdx}-${s}" placeholder="${prevWeight || '0'}" data-prev="${prevWeight}">
+                                <span>kg</span>
+                                <input type="number" id="reps-${exIdx}-${s}" placeholder="${prevReps || '0'}" data-prev="${prevReps}">
+                                <span>reps</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML += `
+                    <div class="exercise-card" data-name="${ex.name}">
+                        <div class="exercise-name">${ex.name}</div>
+                        <div class="exercise-note">${ex.note}</div>
+                        ${historyHTML}
+                        <div class="sets-container">
+                            ${setsHTML}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function saveCurrentWorkout() {
+            const today = new Date().toLocaleDateString('pt-PT');
+            const exercisesInDOM = document.querySelectorAll('.exercise-card');
+            const workoutLog = {
+                date: today,
+                day: currentDay,
+                exercises: {}
+            };
+
+            exercisesInDOM.forEach((card, exIdx) => {
+                const exName = card.getAttribute('data-name');
+                const originalData = workoutData[currentDay].find(e => e.name === exName);
+                const setsData = [];
+
+                for (let s = 1; s <= originalData.sets; s++) {
+                    const weightInput = document.getElementById(`weight-${exIdx}-${s}`);
+                    const repsInput = document.getElementById(`reps-${exIdx}-${s}`);
+                    
+                    // Se o utilizador deixou em branco, assume o valor placeholder (do treino anterior)
+                    const weight = weightInput.value || weightInput.getAttribute('data-prev') || 0;
+                    const reps = repsInput.value || repsInput.getAttribute('data-prev') || 0;
+
+                    setsData.push({
+                        weight: parseFloat(weight),
+                        reps: parseInt(reps)
+                    });
+                }
+
+                workoutLog.exercises[exName] = setsData;
+            });
+
+            // Adiciona ao histórico e grava no LocalStorage
+            history.push(workoutLog);
+            localStorage.setItem('gym_history', JSON.stringify(history));
+
+            alert('Treino gravado com sucesso! Mantém o foco no próximo.');
+            renderWorkout(); // Atualiza o ecrã com o novo histórico como "anterior"
+            window.scrollTo(0,0);
+        }
+
+        // Render inicial ao abrir a página
+        renderWorkout();
+    </script>
+</body>
+</html>
