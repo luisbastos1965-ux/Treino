@@ -1,417 +1,1088 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IronProgress V2</title>
-    <!-- Importar Chart.js para os gráficos -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg-color: #0f172a; --card-bg: #1e293b; --accent-color: #38bdf8;
-            --text-color: #f8fafc; --text-muted: #94a3b8; --success: #22c55e;
-            --danger: #ef4444; --check-bg: #334155;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); padding: 15px; padding-bottom: 100px; }
-        
-        header { text-align: center; margin-bottom: 20px; padding: 10px; }
-        header h1 { color: var(--accent-color); font-size: 24px; }
+<title>Gym Tracker</title>
 
-        /* Timer Banner Fixado no Topo */
-        #timer-banner { position: fixed; top: 0; left: 0; right: 0; background: var(--accent-color); color: #000; text-align: center; padding: 10px; font-weight: bold; font-size: 18px; display: none; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        
-        /* Navegação Principal (Treino / Evolução / Calendário) */
-        .main-nav { display: flex; gap: 10px; margin-bottom: 20px; background: #000; padding: 5px; border-radius: 10px; }
-        .main-nav-btn { flex: 1; padding: 10px; background: transparent; border: none; color: var(--text-muted); font-weight: bold; border-radius: 8px; cursor: pointer; }
-        .main-nav-btn.active { background: var(--card-bg); color: var(--text-color); }
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        /* Abas de Treino (Push/Pull/Legs) */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { flex: 1; padding: 10px; background: var(--card-bg); border: 1px solid transparent; color: var(--text-muted); border-radius: 8px; cursor: pointer; }
-        .tab-btn.active { border-color: var(--accent-color); color: var(--accent-color); }
+<style>
+:root{
+    --bg-color:#0f172a;
+    --card-bg:#1e293b;
+    --accent-color:#38bdf8;
+    --text-color:#f8fafc;
+    --text-muted:#94a3b8;
+    --success:#22c55e;
+    --danger:#ef4444;
+    --check-bg:#334155;
+}
 
-        .view-section { display: none; }
-        .view-section.active { display: block; }
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+}
 
-        /* Cartões de Exercício */
-        .exercise-card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
-        .exercise-name { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
-        .history-badge { background: #334155; padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-bottom: 12px; display: inline-block; color: var(--accent-color); }
+body{
+    background-color:var(--bg-color);
+    color:var(--text-color);
+    padding:15px;
+    padding-bottom:100px;
+}
 
-        /* Layout das Séries */
-        .set-row { display: flex; align-items: center; justify-content: space-between; gap: 5px; background: var(--check-bg); padding: 8px; border-radius: 8px; margin-bottom: 8px; transition: 0.3s; }
-        .set-row.done { opacity: 0.6; border-left: 4px solid var(--success); }
-        .set-num { font-weight: bold; width: 35px; font-size: 14px; }
-        
-        .input-group { display: flex; align-items: center; gap: 3px; }
-        .input-group input, .input-group select { width: 55px; padding: 8px 4px; border: none; border-radius: 4px; background: var(--bg-color); color: white; text-align: center; font-size: 14px; }
-        .input-group label { font-size: 11px; color: var(--text-muted); }
+#timer-banner{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    background:var(--accent-color);
+    color:#000;
+    text-align:center;
+    padding:10px;
+    font-weight:bold;
+    font-size:18px;
+    display:none;
+    z-index:1000;
+    box-shadow:0 4px 10px rgba(0,0,0,0.5);
+}
 
-        .check-btn { padding: 8px 12px; border: none; border-radius: 6px; background: var(--success); color: white; font-weight: bold; cursor: pointer; }
-        
-        /* Footer Buttons */
-        .footer-action { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-color); padding: 15px; display: flex; gap: 10px; box-shadow: 0 -10px 20px rgba(0,0,0,0.5); }
-        .btn-primary { flex: 2; padding: 15px; background: var(--success); border: none; color: white; font-weight: bold; border-radius: 10px; cursor: pointer; }
-        .btn-secondary { flex: 1; padding: 15px; background: #334155; border: none; color: white; font-weight: bold; border-radius: 10px; cursor: pointer; }
+/* NAV */
+.main-nav{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+    margin-top:10px;
+    background:#000;
+    padding:5px;
+    border-radius:10px;
+}
 
-        /* Estilos do Calendário */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 20px; }
-        .day-box { background: #334155; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 14px; color: var(--text-muted); }
-        .day-box.trained { background: var(--success); color: white; font-weight: bold; border: 2px solid #166534; }
-        
-        /* Estilos do Gráfico */
-        canvas { background: var(--card-bg); border-radius: 12px; padding: 10px; margin-top: 15px; width: 100%; max-width: 100%; }
-        select.chart-select { width: 100%; padding: 12px; background: var(--card-bg); color: white; border: 1px solid var(--text-muted); border-radius: 8px; font-size: 16px; }
-        
-        /* Progresso da Meta */
-        .goal-container { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-top: 20px; }
-        .progress-bar { height: 10px; background: #334155; border-radius: 5px; margin-top: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--accent-color); width: 0%; transition: width 0.5s; }
-    </style>
+.main-nav-btn{
+    flex:1;
+    padding:10px;
+    background:transparent;
+    border:none;
+    color:var(--text-muted);
+    font-weight:bold;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.main-nav-btn.active{
+    background:var(--card-bg);
+    color:var(--text-color);
+}
+
+/* TABS */
+.tabs{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.tab-btn{
+    flex:1;
+    padding:10px;
+    background:var(--card-bg);
+    border:1px solid transparent;
+    color:var(--text-muted);
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.tab-btn.active{
+    border-color:var(--accent-color);
+    color:var(--accent-color);
+}
+
+.view-section{
+    display:none;
+}
+
+.view-section.active{
+    display:block;
+}
+
+/* EXERCISE */
+.exercise-card{
+    background:var(--card-bg);
+    padding:15px;
+    border-radius:12px;
+    margin-bottom:15px;
+}
+
+.exercise-name{
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:6px;
+}
+
+.history-badge{
+    background:#334155;
+    padding:6px 10px;
+    border-radius:6px;
+    font-size:12px;
+    margin-bottom:12px;
+    display:inline-block;
+    color:var(--accent-color);
+}
+
+.exercise-info-btn{
+    margin-bottom:12px;
+    padding:8px 12px;
+    background:#334155;
+    border:none;
+    color:white;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13px;
+}
+
+/* SETS */
+.set-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:5px;
+    background:var(--check-bg);
+    padding:8px;
+    border-radius:8px;
+    margin-bottom:8px;
+    transition:0.3s;
+}
+
+.set-row.done{
+    opacity:0.6;
+    border-left:4px solid var(--success);
+}
+
+.set-num{
+    font-weight:bold;
+    width:35px;
+    font-size:14px;
+}
+
+.input-group{
+    display:flex;
+    align-items:center;
+    gap:3px;
+}
+
+.input-group input,
+.input-group select{
+    width:55px;
+    padding:8px 4px;
+    border:none;
+    border-radius:4px;
+    background:var(--bg-color);
+    color:white;
+    text-align:center;
+    font-size:14px;
+}
+
+.input-group label{
+    font-size:11px;
+    color:var(--text-muted);
+}
+
+.check-btn{
+    padding:8px 12px;
+    border:none;
+    border-radius:6px;
+    background:var(--success);
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+/* FOOTER */
+.footer-action{
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    background:var(--bg-color);
+    padding:15px;
+    display:flex;
+    gap:10px;
+    box-shadow:0 -10px 20px rgba(0,0,0,0.5);
+}
+
+.btn-primary{
+    flex:2;
+    padding:15px;
+    background:var(--success);
+    border:none;
+    color:white;
+    font-weight:bold;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.btn-secondary{
+    flex:1;
+    padding:15px;
+    background:#334155;
+    border:none;
+    color:white;
+    font-weight:bold;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+/* EVOLUTION */
+canvas{
+    background:var(--card-bg);
+    border-radius:12px;
+    padding:10px;
+    margin-top:15px;
+    width:100%;
+    max-width:100%;
+}
+
+.chart-select{
+    width:100%;
+    padding:12px;
+    background:var(--card-bg);
+    color:white;
+    border:1px solid var(--text-muted);
+    border-radius:8px;
+    font-size:16px;
+}
+
+/* GOALS */
+.goal-container{
+    background:var(--card-bg);
+    padding:15px;
+    border-radius:12px;
+    margin-top:20px;
+}
+
+.progress-bar{
+    height:10px;
+    background:#334155;
+    border-radius:5px;
+    margin-top:10px;
+    overflow:hidden;
+}
+
+.progress-fill{
+    height:100%;
+    background:var(--accent-color);
+    width:0%;
+    transition:width 0.5s;
+}
+
+/* CALENDAR */
+.calendar-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:15px;
+}
+
+.calendar-header button{
+    background:var(--card-bg);
+    border:none;
+    color:white;
+    padding:10px 14px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.weekdays{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    margin-bottom:8px;
+    text-align:center;
+    color:var(--text-muted);
+    font-size:13px;
+}
+
+.calendar-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:6px;
+}
+
+.day-box{
+    background:#334155;
+    min-height:60px;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.day-box:hover{
+    transform:scale(1.05);
+}
+
+.day-box.empty{
+    background:transparent;
+}
+
+.day-box.trained{
+    background:var(--success);
+    color:white;
+    font-weight:bold;
+}
+</style>
 </head>
+
 <body>
 
-    <div id="timer-banner">⏳ Descanso: <span id="timer-display">90</span>s</div>
+<div id="timer-banner">
+⏳ Descanso:
+<span id="timer-display">90</span>s
+</div>
 
-    <header>
-        <h1>💪 IronProgress</h1>
-    </header>
+<div class="main-nav">
+    <button class="main-nav-btn active" onclick="switchMainView(event,'view-treino')">Treinar</button>
+    <button class="main-nav-btn" onclick="switchMainView(event,'view-evolucao')">Progresso</button>
+    <button class="main-nav-btn" onclick="switchMainView(event,'view-calendario')">Calendário</button>
+</div>
 
-    <div class="main-nav">
-        <button class="main-nav-btn active" onclick="switchMainView('view-treino')">Treinar</button>
-        <button class="main-nav-btn" onclick="switchMainView('view-evolucao')">Evolução</button>
-        <button class="main-nav-btn" onclick="switchMainView('view-calendario')">Calendário</button>
+<!-- TREINO -->
+<div id="view-treino" class="view-section active">
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchWorkout(event,'PUSH')">PUSH</button>
+        <button class="tab-btn" onclick="switchWorkout(event,'PULL')">PULL</button>
+        <button class="tab-btn" onclick="switchWorkout(event,'LEGS')">LEGS</button>
     </div>
 
-    <!-- VIEW 1: TREINO -->
-    <div id="view-treino" class="view-section active">
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchWorkout('PUSH')">PUSH</button>
-            <button class="tab-btn" onclick="switchWorkout('PULL')">PULL</button>
-            <button class="tab-btn" onclick="switchWorkout('LEGS')">LEGS</button>
+    <div id="workout-container"></div>
+
+    <div class="footer-action">
+        <button class="btn-secondary" onclick="shareWorkout()">Partilhar</button>
+        <button class="btn-primary" onclick="saveCurrentWorkout()">Gravar Treino</button>
+    </div>
+</div>
+
+<!-- EVOLUÇÃO -->
+<div id="view-evolucao" class="view-section">
+
+    <h2>📈 Progresso</h2>
+
+    <select id="exercise-select" class="chart-select" onchange="renderChart()">
+        <option value="">Escolhe um exercício...</option>
+    </select>
+
+    <canvas id="progressChart"></canvas>
+
+    <div id="pr-display" class="goal-container"></div>
+
+</div>
+
+<!-- CALENDÁRIO -->
+<div id="view-calendario" class="view-section">
+
+    <div class="calendar-header">
+        <button onclick="changeMonth(-1)">◀</button>
+        <h2 id="calendar-title"></h2>
+        <button onclick="changeMonth(1)">▶</button>
+    </div>
+
+    <div class="weekdays">
+        <div>Seg</div>
+        <div>Ter</div>
+        <div>Qua</div>
+        <div>Qui</div>
+        <div>Sex</div>
+        <div>Sáb</div>
+        <div>Dom</div>
+    </div>
+
+    <div class="goal-container">
+        <h3>Meta Semanal: 6 Treinos</h3>
+
+        <p style="font-size:14px;color:var(--text-muted);">
+            Treinos esta semana:
+            <span id="weekly-count">0</span>/6
+        </p>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="weekly-progress"></div>
         </div>
-        <div id="workout-container"></div>
-        
-        <div class="footer-action">
-            <button class="btn-secondary" onclick="shareWorkout()">Partilhar</button>
-            <button class="btn-primary" onclick="saveCurrentWorkout()">Gravar Treino</button>
-        </div>
     </div>
 
-    <!-- VIEW 2: EVOLUÇÃO (GRÁFICOS) -->
-    <div id="view-evolucao" class="view-section">
-        <h2>📈 O teu progresso</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 15px;">Acompanha a tua carga ao longo do tempo.</p>
-        <select id="exercise-select" class="chart-select" onchange="renderChart()">
-            <option value="">Escolhe um exercício...</option>
-        </select>
-        <canvas id="progressChart"></canvas>
-    </div>
+    <div class="calendar-grid" id="calendar-grid"></div>
 
-    <!-- VIEW 3: CALENDÁRIO -->
-    <div id="view-calendario" class="view-section">
-        <h2>📅 Histórico Mensal</h2>
-        
-        <div class="goal-container">
-            <h3>Meta Semanal: 6 Treinos</h3>
-            <p style="font-size: 14px; color: var(--text-muted);">Treinos esta semana: <span id="weekly-count">0</span>/6</p>
-            <div class="progress-bar">
-                <div class="progress-fill" id="weekly-progress"></div>
+</div>
+
+<script>
+
+const workoutData = {
+
+    PUSH:[
+        {name:"Supino Inclinado c/ Halteres",sets:3},
+        {name:"Supino Plano na Máquina",sets:3},
+        {name:"Press Militar c/ Halteres",sets:3},
+        {name:"Elevações Laterais na Polia",sets:4},
+        {name:"Tríceps à Testa",sets:3},
+        {name:"Tríceps na Polia",sets:3}
+    ],
+
+    PULL:[
+        {name:"Puxada Vertical na Polia Alta",sets:3},
+        {name:"Remada Sentada com Cabo",sets:3},
+        {name:"Remada Inclinada c/ Halteres",sets:3},
+        {name:"Voos Posteriores",sets:4},
+        {name:"Curl de Bíceps Inclinado",sets:3},
+        {name:"Curl Martelo",sets:3}
+    ],
+
+    LEGS:[
+        {name:"Leg Press / Hack",sets:4},
+        {name:"Peso Morto Romeno (RDL)",sets:3},
+        {name:"Extensão de Pernas",sets:3},
+        {name:"Flexão de Pernas",sets:3},
+        {name:"Elevação de Gémeos em Pé",sets:4}
+    ]
+};
+
+let currentDay = "PUSH";
+
+let history =
+JSON.parse(localStorage.getItem("gym_history")) || [];
+
+let timerInterval;
+
+let chartInstance = null;
+
+let currentCalendarDate = new Date();
+
+/* NAV */
+
+function switchMainView(event,viewId){
+
+    document.querySelectorAll(".view-section")
+    .forEach(el=>el.classList.remove("active"));
+
+    document.getElementById(viewId)
+    .classList.add("active");
+
+    document.querySelectorAll(".main-nav-btn")
+    .forEach(btn=>btn.classList.remove("active"));
+
+    event.target.classList.add("active");
+
+    if(viewId==="view-evolucao"){
+        setupChartSelect();
+    }
+
+    if(viewId==="view-calendario"){
+        renderCalendar();
+    }
+}
+
+/* WORKOUT */
+
+function switchWorkout(event,day){
+
+    currentDay=day;
+
+    document.querySelectorAll(".tab-btn")
+    .forEach(btn=>btn.classList.remove("active"));
+
+    event.target.classList.add("active");
+
+    renderWorkout();
+}
+
+function getLastPerformance(exerciseName){
+
+    for(let i=history.length-1;i>=0;i--){
+
+        if(history[i].exercises &&
+           history[i].exercises[exerciseName]){
+
+            return history[i].exercises[exerciseName];
+        }
+    }
+
+    return null;
+}
+
+function renderWorkout(){
+
+    const container =
+    document.getElementById("workout-container");
+
+    container.innerHTML="";
+
+    workoutData[currentDay].forEach((ex,exIdx)=>{
+
+        const lastPerf =
+        getLastPerformance(ex.name);
+
+        let historyHTML = lastPerf
+        ?
+        `<div class="history-badge">
+            Última vez:
+            ${lastPerf[0].weight}kg x
+            ${lastPerf[0].reps}
+        </div>`
+        :
+        `<div class="history-badge">
+            Novo Exercício
+        </div>`;
+
+        let setsHTML = "";
+
+        for(let s=1;s<=ex.sets;s++){
+
+            const pW =
+            lastPerf && lastPerf[s-1]
+            ? lastPerf[s-1].weight
+            : "";
+
+            const pR =
+            lastPerf && lastPerf[s-1]
+            ? lastPerf[s-1].reps
+            : "";
+
+            setsHTML += `
+            <div class="set-row" id="row-${exIdx}-${s}">
+
+                <span class="set-num">S${s}</span>
+
+                <div class="input-group">
+                    <label>KG</label>
+                    <input type="number"
+                    step="any"
+                    id="weight-${exIdx}-${s}"
+                    placeholder="${pW}">
+                </div>
+
+                <div class="input-group">
+                    <label>REPS</label>
+                    <input type="number"
+                    id="reps-${exIdx}-${s}"
+                    placeholder="${pR}">
+                </div>
+
+                <div class="input-group">
+                    <label>RIR</label>
+
+                    <select id="rir-${exIdx}-${s}">
+                        <option value="0">0</option>
+                        <option value="1" selected>1</option>
+                        <option value="2">2</option>
+                        <option value="3">3+</option>
+                    </select>
+                </div>
+
+                <button class="check-btn"
+                onclick="checkSet(${exIdx},${s})">
+                ✔
+                </button>
+
             </div>
+            `;
+        }
+
+        container.innerHTML += `
+        <div class="exercise-card"
+        data-name="${ex.name}">
+
+            <div class="exercise-name">
+                ${ex.name}
+            </div>
+
+            ${historyHTML}
+
+            <button class="exercise-info-btn"
+            onclick="showExerciseInfo('${ex.name}')">
+            ℹ Como fazer
+            </button>
+
+            <div>${setsHTML}</div>
+
         </div>
+        `;
+    });
+}
 
-        <div class="calendar-grid" id="calendar-grid">
-            <!-- Gerado via JS -->
-        </div>
-    </div>
+/* EXERCISE INFO */
 
-    <script>
-        // === DADOS E ESTADO ===
-        const workoutData = {
-            PUSH: [
-                { name: "Supino Inclinado c/ Halteres", sets: 3 },
-                { name: "Supino Plano na Máquina", sets: 3 },
-                { name: "Press Militar c/ Halteres", sets: 3 },
-                { name: "Elevações Laterais na Polia", sets: 4 },
-                { name: "Tríceps à Testa", sets: 3 },
-                { name: "Tríceps na Polia", sets: 3 }
-            ],
-            PULL: [
-                { name: "Puxada Vertical na Polia Alta", sets: 3 },
-                { name: "Remada Sentada com Cabo", sets: 3 },
-                { name: "Remada Inclinada c/ Halteres", sets: 3 },
-                { name: "Voos Posteriores", sets: 4 },
-                { name: "Curl de Bíceps Inclinado", sets: 3 },
-                { name: "Curl Martelo", sets: 3 }
-            ],
-            LEGS: [
-                { name: "Leg Press / Hack", sets: 4 },
-                { name: "Peso Morto Romeno (RDL)", sets: 3 },
-                { name: "Extensão de Pernas", sets: 3 },
-                { name: "Flexão de Pernas", sets: 3 },
-                { name: "Elevação de Gémeos em Pé", sets: 4 }
-            ]
-        };
+function showExerciseInfo(exerciseName){
 
-        let currentDay = 'PUSH';
-        let history = JSON.parse(localStorage.getItem('gym_history')) || [];
-        let timerInterval;
-        let chartInstance = null;
+    const videos = {
 
-        // === NAVEGAÇÃO PRINCIPAL ===
-        function switchMainView(viewId) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(viewId).classList.add('active');
-            
-            document.querySelectorAll('.main-nav-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+        "Supino Inclinado c/ Halteres":
+        "https://www.youtube.com/results?search_query=supino+inclinado+halteres",
 
-            if (viewId === 'view-evolucao') setupChartSelect();
-            if (viewId === 'view-calendario') renderCalendar();
-        }
+        "Supino Plano na Máquina":
+        "https://www.youtube.com/results?search_query=machine+chest+press",
 
-        // === LÓGICA DO TREINO ===
-        function switchWorkout(day) {
-            currentDay = day;
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            renderWorkout();
-        }
+        "Press Militar c/ Halteres":
+        "https://www.youtube.com/results?search_query=dumbbell+shoulder+press",
 
-        function getLastPerformance(exerciseName) {
-            for (let i = history.length - 1; i >= 0; i--) {
-                if (history[i].exercises && history[i].exercises[exerciseName]) {
-                    return history[i].exercises[exerciseName];
-                }
-            }
-            return null;
-        }
+        "Puxada Vertical na Polia Alta":
+        "https://www.youtube.com/results?search_query=lat+pulldown",
 
-        function renderWorkout() {
-            const container = document.getElementById('workout-container');
-            container.innerHTML = '';
-            
-            workoutData[currentDay].forEach((ex, exIdx) => {
-                const lastPerf = getLastPerformance(ex.name);
-                let historyHTML = lastPerf 
-                    ? `<div class="history-badge">Última vez: ${lastPerf[0].weight}kg x ${lastPerf[0].reps} (RIR: ${lastPerf[0].rir || 0})</div>`
-                    : `<div class="history-badge">Novo Exercício</div>`;
+        "Peso Morto Romeno (RDL)":
+        "https://www.youtube.com/results?search_query=romanian+deadlift",
 
-                let setsHTML = '';
-                for (let s = 1; s <= ex.sets; s++) {
-                    const pW = lastPerf && lastPerf[s-1] ? lastPerf[s-1].weight : '';
-                    const pR = lastPerf && lastPerf[s-1] ? lastPerf[s-1].reps : '';
+        "Leg Press / Hack":
+        "https://www.youtube.com/results?search_query=leg+press+tutorial"
+    };
 
-                    setsHTML += `
-                        <div class="set-row" id="row-${exIdx}-${s}">
-                            <span class="set-num">S${s}</span>
-                            <div class="input-group">
-                                <label>KG</label>
-                                <input type="number" step="any" id="weight-${exIdx}-${s}" placeholder="${pW}">
-                            </div>
-                            <div class="input-group">
-                                <label>REPS</label>
-                                <input type="number" id="reps-${exIdx}-${s}" placeholder="${pR}">
-                            </div>
-                            <div class="input-group">
-                                <label>RIR</label>
-                                <select id="rir-${exIdx}-${s}">
-                                    <option value="0">0</option>
-                                    <option value="1" selected>1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3+</option>
-                                </select>
-                            </div>
-                            <button class="check-btn" onclick="checkSet(${exIdx}, ${s})">✔</button>
-                        </div>
-                    `;
-                }
+    const url = videos[exerciseName];
 
-                container.innerHTML += `
-                    <div class="exercise-card" data-name="${ex.name}">
-                        <div class="exercise-name">${ex.name}</div>
-                        ${historyHTML}
-                        <div>${setsHTML}</div>
-                    </div>
-                `;
-            });
-        }
+    if(url){
+        window.open(url,"_blank");
+    }else{
+        alert("Vídeo ainda não disponível.");
+    }
+}
 
-        // === CHECK & CRONÓMETRO ===
-        function checkSet(exIdx, s) {
-            // Marca visualmente como feito
-            document.getElementById(`row-${exIdx}-${s}`).classList.add('done');
-            
-            // Inicia Timer de 90 segundos
-            startTimer(90);
-        }
+/* TIMER */
 
-        function startTimer(seconds) {
+function checkSet(exIdx,s){
+
+    document
+    .getElementById(`row-${exIdx}-${s}`)
+    .classList.add("done");
+
+    startTimer(90);
+}
+
+function startTimer(seconds){
+
+    clearInterval(timerInterval);
+
+    const banner =
+    document.getElementById("timer-banner");
+
+    const display =
+    document.getElementById("timer-display");
+
+    banner.style.display="block";
+
+    let timeLeft = seconds;
+
+    display.innerText=timeLeft;
+
+    timerInterval = setInterval(()=>{
+
+        timeLeft--;
+
+        display.innerText=timeLeft;
+
+        if(timeLeft<=0){
+
             clearInterval(timerInterval);
-            const banner = document.getElementById('timer-banner');
-            const display = document.getElementById('timer-display');
-            banner.style.display = 'block';
-            
-            let timeLeft = seconds;
-            display.innerText = timeLeft;
 
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                display.innerText = timeLeft;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    banner.style.display = 'none';
-                    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]); // Vibra o telemóvel!
-                    alert("Tempo de descanso acabou! Bora para a próxima série!");
-                }
-            }, 1000);
-        }
+            banner.style.display="none";
 
-        // === GRAVAR E PARTILHAR ===
-        function saveCurrentWorkout() {
-            // Usando o formato YYYY-MM-DD local
-            const dateObj = new Date();
-            const todayString = dateObj.getFullYear() + "-" + 
-                                String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + 
-                                String(dateObj.getDate()).padStart(2, '0');
-
-            const workoutLog = { date: todayString, day: currentDay, exercises: {} };
-
-            document.querySelectorAll('.exercise-card').forEach((card, exIdx) => {
-                const exName = card.getAttribute('data-name');
-                const setsData = [];
-                const numSets = workoutData[currentDay].find(e => e.name === exName).sets;
-
-                for (let s = 1; s <= numSets; s++) {
-                    const w = document.getElementById(`weight-${exIdx}-${s}`).value || document.getElementById(`weight-${exIdx}-${s}`).placeholder || 0;
-                    const r = document.getElementById(`reps-${exIdx}-${s}`).value || document.getElementById(`reps-${exIdx}-${s}`).placeholder || 0;
-                    const rir = document.getElementById(`rir-${exIdx}-${s}`).value;
-
-                    setsData.push({ weight: parseFloat(w), reps: parseInt(r), rir: parseInt(rir) });
-                }
-                workoutLog.exercises[exName] = setsData;
-            });
-
-            history.push(workoutLog);
-            localStorage.setItem('gym_history', JSON.stringify(history));
-            alert('Treino gravado! Estás um monstro.');
-            renderWorkout(); 
-            window.scrollTo(0,0);
-        }
-
-        function shareWorkout() {
-            if (navigator.share) {
-                navigator.share({
-                    title: 'O Meu Treino',
-                    text: `Acabei de rasgar o treino de ${currentDay}! Focado na sobrecarga. 💪`,
-                }).catch(console.error);
-            } else {
-                alert("O teu navegador não suporta partilha nativa.");
+            if(navigator.vibrate){
+                navigator.vibrate([200,100,200]);
             }
+
+            alert("Descanso terminado!");
         }
 
-        // === GRÁFICOS (CHART.JS) ===
-        function setupChartSelect() {
-            const select = document.getElementById('exercise-select');
-            select.innerHTML = '<option value="">Escolhe um exercício...</option>';
-            
-            // Compila lista única de exercícios do histórico
-            const uniqueEx = new Set();
-            history.forEach(log => {
-                Object.keys(log.exercises).forEach(ex => uniqueEx.add(ex));
-            });
+    },1000);
+}
 
-            uniqueEx.forEach(ex => {
-                select.innerHTML += `<option value="${ex}">${ex}</option>`;
+/* SAVE */
+
+function saveCurrentWorkout(){
+
+    const dateObj = new Date();
+
+    const todayString =
+    dateObj.getFullYear()+"-"+
+    String(dateObj.getMonth()+1)
+    .padStart(2,"0")+"-"+
+    String(dateObj.getDate())
+    .padStart(2,"0");
+
+    const workoutLog = {
+        date:todayString,
+        day:currentDay,
+        exercises:{}
+    };
+
+    document.querySelectorAll(".exercise-card")
+    .forEach((card,exIdx)=>{
+
+        const exName =
+        card.getAttribute("data-name");
+
+        const setsData=[];
+
+        const numSets =
+        workoutData[currentDay]
+        .find(e=>e.name===exName).sets;
+
+        for(let s=1;s<=numSets;s++){
+
+            const w =
+            document
+            .getElementById(`weight-${exIdx}-${s}`)
+            .value
+            ||
+            document
+            .getElementById(`weight-${exIdx}-${s}`)
+            .placeholder
+            ||
+            0;
+
+            const r =
+            document
+            .getElementById(`reps-${exIdx}-${s}`)
+            .value
+            ||
+            document
+            .getElementById(`reps-${exIdx}-${s}`)
+            .placeholder
+            ||
+            0;
+
+            const rir =
+            document
+            .getElementById(`rir-${exIdx}-${s}`)
+            .value;
+
+            setsData.push({
+                weight:parseFloat(w),
+                reps:parseInt(r),
+                rir:parseInt(rir)
             });
         }
 
-        function renderChart() {
-            const exercise = document.getElementById('exercise-select').value;
-            if (!exercise) return;
+        workoutLog.exercises[exName]=setsData;
+    });
 
-            const labels = [];
-            const dataPoints = [];
+    history.push(workoutLog);
 
-            // Recolhe o peso da Série 1 (carga máxima geralmente) ao longo do tempo
-            history.forEach(log => {
-                if (log.exercises[exercise]) {
-                    labels.push(log.date);
-                    dataPoints.push(log.exercises[exercise][0].weight);
-                }
-            });
+    localStorage.setItem(
+        "gym_history",
+        JSON.stringify(history)
+    );
 
-            if (chartInstance) chartInstance.destroy(); // Limpa gráfico antigo
+    alert("Treino gravado!");
+}
 
-            const ctx = document.getElementById('progressChart').getContext('2d');
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: `Carga (kg) - Série 1`,
-                        data: dataPoints,
-                        borderColor: '#38bdf8',
-                        backgroundColor: 'rgba(56, 189, 248, 0.2)',
-                        borderWidth: 3,
-                        tension: 0.3,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { labels: { color: 'white' } } },
-                    scales: {
-                        x: { ticks: { color: '#94a3b8' } },
-                        y: { ticks: { color: '#94a3b8' } }
+/* SHARE */
+
+function shareWorkout(){
+
+    if(navigator.share){
+
+        navigator.share({
+            title:"O Meu Treino",
+            text:`Acabei o treino de ${currentDay} 💪`
+        });
+
+    }else{
+        alert("Partilha não suportada.");
+    }
+}
+
+/* CHART */
+
+function setupChartSelect(){
+
+    const select =
+    document.getElementById("exercise-select");
+
+    select.innerHTML =
+    '<option value="">Escolhe um exercício...</option>';
+
+    const uniqueEx = new Set();
+
+    history.forEach(log=>{
+
+        Object.keys(log.exercises)
+        .forEach(ex=>uniqueEx.add(ex));
+
+    });
+
+    uniqueEx.forEach(ex=>{
+
+        select.innerHTML += `
+        <option value="${ex}">
+            ${ex}
+        </option>
+        `;
+    });
+}
+
+function renderChart(){
+
+    const exercise =
+    document.getElementById("exercise-select").value;
+
+    if(!exercise)return;
+
+    const labels=[];
+    const dataPoints=[];
+
+    history.forEach(log=>{
+
+        if(log.exercises[exercise]){
+
+            labels.push(log.date);
+
+            dataPoints.push(
+                log.exercises[exercise][0].weight
+            );
+        }
+    });
+
+    if(chartInstance){
+        chartInstance.destroy();
+    }
+
+    const ctx =
+    document.getElementById("progressChart")
+    .getContext("2d");
+
+    chartInstance = new Chart(ctx,{
+
+        type:"line",
+
+        data:{
+            labels:labels,
+
+            datasets:[{
+                label:"Carga (kg)",
+                data:dataPoints,
+                borderColor:"#38bdf8",
+                backgroundColor:"rgba(56,189,248,0.2)",
+                borderWidth:3,
+                tension:0.3,
+                fill:true
+            }]
+        },
+
+        options:{
+            responsive:true,
+
+            plugins:{
+                legend:{
+                    labels:{
+                        color:"white"
                     }
                 }
-            });
-        }
+            },
 
-        // === CALENDÁRIO E METAS ===
-        function renderCalendar() {
-            const grid = document.getElementById('calendar-grid');
-            grid.innerHTML = '';
-            
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth(); // 0 a 11
-            
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            
-            // Quais os dias que treinei este mês?
-            const trainedDays = history
-                .filter(log => log.date.startsWith(`${year}-${String(month+1).padStart(2, '0')}`))
-                .map(log => parseInt(log.date.split('-')[2])); // Extrai apenas o número do dia
+            scales:{
+                x:{
+                    ticks:{
+                        color:"#94a3b8"
+                    }
+                },
 
-            for (let i = 1; i <= daysInMonth; i++) {
-                const isTrained = trainedDays.includes(i);
-                grid.innerHTML += `<div class="day-box ${isTrained ? 'trained' : ''}">${i}</div>`;
-            }
-
-            // Cálculo da meta semanal (Treinos nos últimos 7 dias)
-            let weeklyCount = 0;
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(now.getDate() - 7);
-            
-            history.forEach(log => {
-                const logDate = new Date(log.date);
-                if (logDate >= sevenDaysAgo && logDate <= now) {
-                    weeklyCount++;
+                y:{
+                    ticks:{
+                        color:"#94a3b8"
+                    }
                 }
-            });
-
-            // Máximo 6 para visualização (plano PPLx2 = 6 treinos)
-            const displayCount = weeklyCount > 6 ? 6 : weeklyCount; 
-            document.getElementById('weekly-count').innerText = weeklyCount;
-            document.getElementById('weekly-progress').style.width = `${(displayCount / 6) * 100}%`;
+            }
         }
+    });
 
-        // Render inicial
-        renderWorkout();
-    </script>
+    const maxWeight = Math.max(...dataPoints);
+
+    let totalVolume = 0;
+
+    history.forEach(log=>{
+
+        if(log.exercises[exercise]){
+
+            log.exercises[exercise]
+            .forEach(set=>{
+
+                totalVolume +=
+                set.weight * set.reps;
+
+            });
+        }
+    });
+
+    const trend =
+    dataPoints[dataPoints.length-1] >
+    dataPoints[0]
+    ?
+    "📈 Estás mais forte"
+    :
+    "📉 Sem progressão recente";
+
+    document.getElementById("pr-display")
+    .innerHTML = `
+        <h3>🏆 Recorde Pessoal</h3>
+        <p>${maxWeight} kg</p>
+
+        <br>
+
+        <h3>📊 Volume Total</h3>
+        <p>${totalVolume} kg</p>
+
+        <br>
+
+        <h3>${trend}</h3>
+    `;
+}
+
+/* CALENDAR */
+
+function renderCalendar(){
+
+    const grid =
+    document.getElementById("calendar-grid");
+
+    const title =
+    document.getElementById("calendar-title");
+
+    grid.innerHTML="";
+
+    const year =
+    currentCalendarDate.getFullYear();
+
+    const month =
+    currentCalendarDate.getMonth();
+
+    const firstDay =
+    new Date(year,month,1);
+
+    const lastDay =
+    new Date(year,month+1,0);
+
+    let startDay =
+    firstDay.getDay();
+
+    startDay =
+    startDay===0 ? 6 : startDay-1;
+
+    const daysInMonth =
+    lastDay.getDate();
+
+    const monthNames = [
+        "Janeiro","Fevereiro","Março",
+        "Abril","Maio","Junho",
+        "Julho","Agosto","Setembro",
+        "Outubro","Novembro","Dezembro"
+    ];
+
+    title.innerText =
+    `${monthNames[month]} ${year}`;
+
+    for(let i=0;i<startDay;i++){
+
+        grid.innerHTML += `
+        <div class="day-box empty"></div>
+        `;
+    }
+
+    for(let day=1;day<=daysInMonth;day++){
+
+        const dateString =
+        `${year}-${String(month+1)
+        .padStart(2,"0")}-${
+        String(day).padStart(2,"0")}`;
+
+        const trained =
+        history.some(h=>h.date===dateString);
+
+        grid.innerHTML += `
+        <div class="day-box ${trained ? "trained" : ""}"
+        onclick="toggleTrainingDay('${dateString}')">
+        ${day}
+        </div>
+        `;
+    }
+
+    updateWeeklyGoal();
+}
+
+function changeMonth(direction){
+
+    currentCalendarDate.setMonth(
+        currentCalendarDate.getMonth()+direction
+    );
+
+    renderCalendar();
+}
+
+function toggleTrainingDay(dateString){
+
+    const existing =
+    history.find(h=>h.date===dateString);
+
+    if(existing){
+
+        history =
+        history.filter(h=>h.date!==dateString);
+
+    }else{
+
+        history.push({
+            date:dateString,
+            day:"MANUAL",
+            exercises:{}
+        });
+    }
+
+    localStorage.setItem(
+        "gym_history",
+        JSON.stringify(history)
+    );
+
+    renderCalendar();
+}
+
+function updateWeeklyGoal(){
+
+    const now = new Date();
+
+    let weeklyCount = 0;
+
+    const sevenDaysAgo = new Date();
+
+    sevenDaysAgo.setDate(
+        now.getDate()-7
+    );
+
+    history.forEach(log=>{
+
+        const logDate =
+        new Date(log.date);
+
+        if(logDate>=sevenDaysAgo &&
+           logDate<=now){
+
+            weeklyCount++;
+        }
+    });
+
+    const displayCount =
+    weeklyCount>6 ? 6 : weeklyCount;
+
+    document.getElementById("weekly-count")
+    .innerText = weeklyCount;
+
+    document.getElementById("weekly-progress")
+    .style.width =
+    `${(displayCount/6)*100}%`;
+}
+
+/* INIT */
+
+renderWorkout();
+
+</script>
+
 </body>
 </html>
