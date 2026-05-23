@@ -3,97 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IronProgress - O Meu Ginásio</title>
+    <title>IronProgress V2</title>
+    <!-- Importar Chart.js para os gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent-color: #38bdf8;
-            --text-color: #f8fafc;
-            --text-muted: #94a3b8;
-            --success: #22c55e;
+            --bg-color: #0f172a; --card-bg: #1e293b; --accent-color: #38bdf8;
+            --text-color: #f8fafc; --text-muted: #94a3b8; --success: #22c55e;
+            --danger: #ef4444; --check-bg: #334155;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); padding: 15px; padding-bottom: 80px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 15px; padding-bottom: 100px; }
         
         header { text-align: center; margin-bottom: 20px; padding: 10px; }
         header h1 { color: var(--accent-color); font-size: 24px; }
+
+        /* Timer Banner Fixado no Topo */
+        #timer-banner { position: fixed; top: 0; left: 0; right: 0; background: var(--accent-color); color: #000; text-align: center; padding: 10px; font-weight: bold; font-size: 18px; display: none; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         
+        /* Navegação Principal (Treino / Evolução / Calendário) */
+        .main-nav { display: flex; gap: 10px; margin-bottom: 20px; background: #000; padding: 5px; border-radius: 10px; }
+        .main-nav-btn { flex: 1; padding: 10px; background: transparent; border: none; color: var(--text-muted); font-weight: bold; border-radius: 8px; cursor: pointer; }
+        .main-nav-btn.active { background: var(--card-bg); color: var(--text-color); }
+
+        /* Abas de Treino (Push/Pull/Legs) */
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { flex: 1; padding: 12px; background: var(--card-bg); border: 2px solid transparent; color: var(--text-color); font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-        .tab-btn.active { border-color: var(--accent-color); color: var(--accent-color); background: #1e293b; }
+        .tab-btn { flex: 1; padding: 10px; background: var(--card-bg); border: 1px solid transparent; color: var(--text-muted); border-radius: 8px; cursor: pointer; }
+        .tab-btn.active { border-color: var(--accent-color); color: var(--accent-color); }
 
-        .exercise-card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+
+        /* Cartões de Exercício */
+        .exercise-card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
         .exercise-name { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
-        .exercise-note { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; font-style: italic; }
+        .history-badge { background: #334155; padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-bottom: 12px; display: inline-block; color: var(--accent-color); }
+
+        /* Layout das Séries */
+        .set-row { display: flex; align-items: center; justify-content: space-between; gap: 5px; background: var(--check-bg); padding: 8px; border-radius: 8px; margin-bottom: 8px; transition: 0.3s; }
+        .set-row.done { opacity: 0.6; border-left: 4px solid var(--success); }
+        .set-num { font-weight: bold; width: 35px; font-size: 14px; }
         
-        .history-badge { background: #334155; padding: 6px 10px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; display: inline-block; color: var(--accent-color); }
+        .input-group { display: flex; align-items: center; gap: 3px; }
+        .input-group input, .input-group select { width: 55px; padding: 8px 4px; border: none; border-radius: 4px; background: var(--bg-color); color: white; text-align: center; font-size: 14px; }
+        .input-group label { font-size: 11px; color: var(--text-muted); }
 
-        .sets-container { display: flex; flex-direction: column; gap: 8px; }
-        .set-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #334155; padding: 8px; border-radius: 8px; }
-        .set-num { font-weight: bold; width: 60px; font-size: 14px; }
-        .inputs-group { display: flex; gap: 8px; align-items: center; }
-        .inputs-group input { width: 70px; padding: 6px; border: none; border-radius: 4px; background: var(--bg-color); color: white; text-align: center; font-size: 14px; }
-        .inputs-group span { font-size: 12px; color: var(--text-muted); }
+        .check-btn { padding: 8px 12px; border: none; border-radius: 6px; background: var(--success); color: white; font-weight: bold; cursor: pointer; }
+        
+        /* Footer Buttons */
+        .footer-action { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-color); padding: 15px; display: flex; gap: 10px; box-shadow: 0 -10px 20px rgba(0,0,0,0.5); }
+        .btn-primary { flex: 2; padding: 15px; background: var(--success); border: none; color: white; font-weight: bold; border-radius: 10px; cursor: pointer; }
+        .btn-secondary { flex: 1; padding: 15px; background: #334155; border: none; color: white; font-weight: bold; border-radius: 10px; cursor: pointer; }
 
-        .footer-action { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-color); padding: 15px; box-shadow: 0 -10px 20px rgba(0,0,0,0.3); }
-        .save-btn { width: 100%; max-width: 500px; margin: 0 auto; display: block; padding: 15px; background: var(--success); border: none; color: white; font-weight: bold; font-size: 16px; border-radius: 10px; cursor: pointer; }
-        .save-btn:active { transform: scale(0.98); }
+        /* Estilos do Calendário */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 20px; }
+        .day-box { background: #334155; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 14px; color: var(--text-muted); }
+        .day-box.trained { background: var(--success); color: white; font-weight: bold; border: 2px solid #166534; }
+        
+        /* Estilos do Gráfico */
+        canvas { background: var(--card-bg); border-radius: 12px; padding: 10px; margin-top: 15px; width: 100%; max-width: 100%; }
+        select.chart-select { width: 100%; padding: 12px; background: var(--card-bg); color: white; border: 1px solid var(--text-muted); border-radius: 8px; font-size: 16px; }
+        
+        /* Progresso da Meta */
+        .goal-container { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-top: 20px; }
+        .progress-bar { height: 10px; background: #334155; border-radius: 5px; margin-top: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent-color); width: 0%; transition: width 0.5s; }
     </style>
 </head>
 <body>
 
+    <div id="timer-banner">⏳ Descanso: <span id="timer-display">90</span>s</div>
+
     <header>
         <h1>💪 IronProgress</h1>
-        <p style="color: var(--text-muted); font-size: 13px;">Foco na Sobrecarga Progressiva</p>
     </header>
 
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchWorkout('PUSH')">PUSH</button>
-        <button class="tab-btn" onclick="switchWorkout('PULL')">PULL</button>
-        <button class="tab-btn" onclick="switchWorkout('LEGS')">LEGS</button>
+    <div class="main-nav">
+        <button class="main-nav-btn active" onclick="switchMainView('view-treino')">Treinar</button>
+        <button class="main-nav-btn" onclick="switchMainView('view-evolucao')">Evolução</button>
+        <button class="main-nav-btn" onclick="switchMainView('view-calendario')">Calendário</button>
     </div>
 
-    <div id="workout-container"></div>
+    <!-- VIEW 1: TREINO -->
+    <div id="view-treino" class="view-section active">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchWorkout('PUSH')">PUSH</button>
+            <button class="tab-btn" onclick="switchWorkout('PULL')">PULL</button>
+            <button class="tab-btn" onclick="switchWorkout('LEGS')">LEGS</button>
+        </div>
+        <div id="workout-container"></div>
+        
+        <div class="footer-action">
+            <button class="btn-secondary" onclick="shareWorkout()">Partilhar</button>
+            <button class="btn-primary" onclick="saveCurrentWorkout()">Gravar Treino</button>
+        </div>
+    </div>
 
-    <div class="footer-action">
-        <button class="save-btn" onclick="saveCurrentWorkout()">Gravar Treino de Hoje</button>
+    <!-- VIEW 2: EVOLUÇÃO (GRÁFICOS) -->
+    <div id="view-evolucao" class="view-section">
+        <h2>📈 O teu progresso</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 15px;">Acompanha a tua carga ao longo do tempo.</p>
+        <select id="exercise-select" class="chart-select" onchange="renderChart()">
+            <option value="">Escolhe um exercício...</option>
+        </select>
+        <canvas id="progressChart"></canvas>
+    </div>
+
+    <!-- VIEW 3: CALENDÁRIO -->
+    <div id="view-calendario" class="view-section">
+        <h2>📅 Histórico Mensal</h2>
+        
+        <div class="goal-container">
+            <h3>Meta Semanal: 6 Treinos</h3>
+            <p style="font-size: 14px; color: var(--text-muted);">Treinos esta semana: <span id="weekly-count">0</span>/6</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="weekly-progress"></div>
+            </div>
+        </div>
+
+        <div class="calendar-grid" id="calendar-grid">
+            <!-- Gerado via JS -->
+        </div>
     </div>
 
     <script>
-        // Estrutura de treinos planeada
+        // === DADOS E ESTADO ===
         const workoutData = {
             PUSH: [
-                { name: "Supino Inclinado com Halteres", sets: 3, note: "Foco na porção superior do peito. Controla a descida." },
-                { name: "Supino Plano na Máquina", sets: 3, note: "Tensão constante no peito. Vai até à falha em segurança." },
-                { name: "Press Militar com Halteres", sets: 3, note: "Sentado. Foco no ombro anterior." },
-                { name: "Elevações Laterais na Polia", sets: 4, note: "Tensão constante. Essencial para dar largura." },
-                { name: "Tríceps à Testa com Halteres", sets: 3, note: "Excelente para a cabeça longa do tríceps." },
-                { name: "Tríceps na Polia com Corda", sets: 3, note: "Máxima contração no final do movimento." }
+                { name: "Supino Inclinado c/ Halteres", sets: 3 },
+                { name: "Supino Plano na Máquina", sets: 3 },
+                { name: "Press Militar c/ Halteres", sets: 3 },
+                { name: "Elevações Laterais na Polia", sets: 4 },
+                { name: "Tríceps à Testa", sets: 3 },
+                { name: "Tríceps na Polia", sets: 3 }
             ],
             PULL: [
-                { name: "Puxada Vertical na Polia Alta", sets: 3, note: "Puxa com os cotovelos, focando nas dorsais." },
-                { name: "Remada Sentada com Cabo", sets: 3, note: "Pega neutra. Espreme as escápulas atrás." },
-                { name: "Remada Inclinada c/ Halteres (no Banco)", sets: 3, note: "Deitado de barriga no banco a 30º. Zero batota." },
-                { name: "Voos Posteriores na Polia/Halteres", sets: 4, note: "Foco no deltoide posterior (ombro 3D)." },
-                { name: "Curl de Bíceps Inclinado", sets: 3, note: "Sentado no banco a 45º para máximo alongamento." },
-                { name: "Curl Martelo com Halteres", sets: 3, note: "Trabalha o braquial e antebraço." }
+                { name: "Puxada Vertical na Polia Alta", sets: 3 },
+                { name: "Remada Sentada com Cabo", sets: 3 },
+                { name: "Remada Inclinada c/ Halteres", sets: 3 },
+                { name: "Voos Posteriores", sets: 4 },
+                { name: "Curl de Bíceps Inclinado", sets: 3 },
+                { name: "Curl Martelo", sets: 3 }
             ],
             LEGS: [
-                { name: "Agachamento na Hack / Leg Press", sets: 4, note: "Leva as pernas ao limite sem fadiga na lombar." },
-                { name: "Peso Morto Romeno (RDL)", sets: 3, note: "Controla a descida, foca nos femorais e glúteos." },
-                { name: "Extensão de Pernas", sets: 3, note: "Isolamento de quadríceps. Aguenta 1s no topo." },
-                { name: "Flexão de Pernas (Leg Curl)", sets: 3, note: "Isolamento de femorais." },
-                { name: "Elevação de Gémeos em Pé", sets: 4, note: "Pausa de 2s no ponto mais baixo (alongamento)." }
+                { name: "Leg Press / Hack", sets: 4 },
+                { name: "Peso Morto Romeno (RDL)", sets: 3 },
+                { name: "Extensão de Pernas", sets: 3 },
+                { name: "Flexão de Pernas", sets: 3 },
+                { name: "Elevação de Gémeos em Pé", sets: 4 }
             ]
         };
 
         let currentDay = 'PUSH';
-
-        // Carrega o histórico completo do LocalStorage ou inicia vazio
         let history = JSON.parse(localStorage.getItem('gym_history')) || [];
+        let timerInterval;
+        let chartInstance = null;
 
+        // === NAVEGAÇÃO PRINCIPAL ===
+        function switchMainView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            
+            document.querySelectorAll('.main-nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (viewId === 'view-evolucao') setupChartSelect();
+            if (viewId === 'view-calendario') renderCalendar();
+        }
+
+        // === LÓGICA DO TREINO ===
         function switchWorkout(day) {
             currentDay = day;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -101,13 +180,10 @@
             renderWorkout();
         }
 
-        // Função para encontrar a última performance de um exercício específico
         function getLastPerformance(exerciseName) {
-            // Corre o histórico de trás para a frente para encontrar o mais recente
             for (let i = history.length - 1; i >= 0; i--) {
-                const log = history[i];
-                if (log.exercises && log.exercises[exerciseName]) {
-                    return log.exercises[exerciseName];
+                if (history[i].exercises && history[i].exercises[exerciseName]) {
+                    return history[i].exercises[exerciseName];
                 }
             }
             return null;
@@ -117,29 +193,38 @@
             const container = document.getElementById('workout-container');
             container.innerHTML = '';
             
-            const exercises = workoutData[currentDay];
-
-            exercises.forEach((ex, exIdx) => {
+            workoutData[currentDay].forEach((ex, exIdx) => {
                 const lastPerf = getLastPerformance(ex.name);
                 let historyHTML = lastPerf 
-                    ? `<div class="history-badge">Anterior: ${lastPerf.map((s, i) => `S${i+1}: ${s.weight}kg x ${s.reps}`).join(' | ')}</div>`
-                    : `<div class="history-badge">Anterior: Sem registo ainda</div>`;
+                    ? `<div class="history-badge">Última vez: ${lastPerf[0].weight}kg x ${lastPerf[0].reps} (RIR: ${lastPerf[0].rir || 0})</div>`
+                    : `<div class="history-badge">Novo Exercício</div>`;
 
                 let setsHTML = '';
                 for (let s = 1; s <= ex.sets; s++) {
-                    // Tenta preencher com o valor anterior para facilitar, ou deixa vazio
-                    const prevWeight = lastPerf && lastPerf[s-1] ? lastPerf[s-1].weight : '';
-                    const prevReps = lastPerf && lastPerf[s-1] ? lastPerf[s-1].reps : '';
+                    const pW = lastPerf && lastPerf[s-1] ? lastPerf[s-1].weight : '';
+                    const pR = lastPerf && lastPerf[s-1] ? lastPerf[s-1].reps : '';
 
                     setsHTML += `
-                        <div class="set-row">
-                            <span class="set-num">Série ${s}</span>
-                            <div class="inputs-group">
-                                <input type="number" step="any" id="weight-${exIdx}-${s}" placeholder="${prevWeight || '0'}" data-prev="${prevWeight}">
-                                <span>kg</span>
-                                <input type="number" id="reps-${exIdx}-${s}" placeholder="${prevReps || '0'}" data-prev="${prevReps}">
-                                <span>reps</span>
+                        <div class="set-row" id="row-${exIdx}-${s}">
+                            <span class="set-num">S${s}</span>
+                            <div class="input-group">
+                                <label>KG</label>
+                                <input type="number" step="any" id="weight-${exIdx}-${s}" placeholder="${pW}">
                             </div>
+                            <div class="input-group">
+                                <label>REPS</label>
+                                <input type="number" id="reps-${exIdx}-${s}" placeholder="${pR}">
+                            </div>
+                            <div class="input-group">
+                                <label>RIR</label>
+                                <select id="rir-${exIdx}-${s}">
+                                    <option value="0">0</option>
+                                    <option value="1" selected>1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3+</option>
+                                </select>
+                            </div>
+                            <button class="check-btn" onclick="checkSet(${exIdx}, ${s})">✔</button>
                         </div>
                     `;
                 }
@@ -147,57 +232,185 @@
                 container.innerHTML += `
                     <div class="exercise-card" data-name="${ex.name}">
                         <div class="exercise-name">${ex.name}</div>
-                        <div class="exercise-note">${ex.note}</div>
                         ${historyHTML}
-                        <div class="sets-container">
-                            ${setsHTML}
-                        </div>
+                        <div>${setsHTML}</div>
                     </div>
                 `;
             });
         }
 
-        function saveCurrentWorkout() {
-            const today = new Date().toLocaleDateString('pt-PT');
-            const exercisesInDOM = document.querySelectorAll('.exercise-card');
-            const workoutLog = {
-                date: today,
-                day: currentDay,
-                exercises: {}
-            };
+        // === CHECK & CRONÓMETRO ===
+        function checkSet(exIdx, s) {
+            // Marca visualmente como feito
+            document.getElementById(`row-${exIdx}-${s}`).classList.add('done');
+            
+            // Inicia Timer de 90 segundos
+            startTimer(90);
+        }
 
-            exercisesInDOM.forEach((card, exIdx) => {
-                const exName = card.getAttribute('data-name');
-                const originalData = workoutData[currentDay].find(e => e.name === exName);
-                const setsData = [];
+        function startTimer(seconds) {
+            clearInterval(timerInterval);
+            const banner = document.getElementById('timer-banner');
+            const display = document.getElementById('timer-display');
+            banner.style.display = 'block';
+            
+            let timeLeft = seconds;
+            display.innerText = timeLeft;
 
-                for (let s = 1; s <= originalData.sets; s++) {
-                    const weightInput = document.getElementById(`weight-${exIdx}-${s}`);
-                    const repsInput = document.getElementById(`reps-${exIdx}-${s}`);
-                    
-                    // Se o utilizador deixou em branco, assume o valor placeholder (do treino anterior)
-                    const weight = weightInput.value || weightInput.getAttribute('data-prev') || 0;
-                    const reps = repsInput.value || repsInput.getAttribute('data-prev') || 0;
-
-                    setsData.push({
-                        weight: parseFloat(weight),
-                        reps: parseInt(reps)
-                    });
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                display.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    banner.style.display = 'none';
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]); // Vibra o telemóvel!
+                    alert("Tempo de descanso acabou! Bora para a próxima série!");
                 }
+            }, 1000);
+        }
 
+        // === GRAVAR E PARTILHAR ===
+        function saveCurrentWorkout() {
+            // Usando o formato YYYY-MM-DD local
+            const dateObj = new Date();
+            const todayString = dateObj.getFullYear() + "-" + 
+                                String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + 
+                                String(dateObj.getDate()).padStart(2, '0');
+
+            const workoutLog = { date: todayString, day: currentDay, exercises: {} };
+
+            document.querySelectorAll('.exercise-card').forEach((card, exIdx) => {
+                const exName = card.getAttribute('data-name');
+                const setsData = [];
+                const numSets = workoutData[currentDay].find(e => e.name === exName).sets;
+
+                for (let s = 1; s <= numSets; s++) {
+                    const w = document.getElementById(`weight-${exIdx}-${s}`).value || document.getElementById(`weight-${exIdx}-${s}`).placeholder || 0;
+                    const r = document.getElementById(`reps-${exIdx}-${s}`).value || document.getElementById(`reps-${exIdx}-${s}`).placeholder || 0;
+                    const rir = document.getElementById(`rir-${exIdx}-${s}`).value;
+
+                    setsData.push({ weight: parseFloat(w), reps: parseInt(r), rir: parseInt(rir) });
+                }
                 workoutLog.exercises[exName] = setsData;
             });
 
-            // Adiciona ao histórico e grava no LocalStorage
             history.push(workoutLog);
             localStorage.setItem('gym_history', JSON.stringify(history));
-
-            alert('Treino gravado com sucesso! Mantém o foco no próximo.');
-            renderWorkout(); // Atualiza o ecrã com o novo histórico como "anterior"
+            alert('Treino gravado! Estás um monstro.');
+            renderWorkout(); 
             window.scrollTo(0,0);
         }
 
-        // Render inicial ao abrir a página
+        function shareWorkout() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'O Meu Treino',
+                    text: `Acabei de rasgar o treino de ${currentDay}! Focado na sobrecarga. 💪`,
+                }).catch(console.error);
+            } else {
+                alert("O teu navegador não suporta partilha nativa.");
+            }
+        }
+
+        // === GRÁFICOS (CHART.JS) ===
+        function setupChartSelect() {
+            const select = document.getElementById('exercise-select');
+            select.innerHTML = '<option value="">Escolhe um exercício...</option>';
+            
+            // Compila lista única de exercícios do histórico
+            const uniqueEx = new Set();
+            history.forEach(log => {
+                Object.keys(log.exercises).forEach(ex => uniqueEx.add(ex));
+            });
+
+            uniqueEx.forEach(ex => {
+                select.innerHTML += `<option value="${ex}">${ex}</option>`;
+            });
+        }
+
+        function renderChart() {
+            const exercise = document.getElementById('exercise-select').value;
+            if (!exercise) return;
+
+            const labels = [];
+            const dataPoints = [];
+
+            // Recolhe o peso da Série 1 (carga máxima geralmente) ao longo do tempo
+            history.forEach(log => {
+                if (log.exercises[exercise]) {
+                    labels.push(log.date);
+                    dataPoints.push(log.exercises[exercise][0].weight);
+                }
+            });
+
+            if (chartInstance) chartInstance.destroy(); // Limpa gráfico antigo
+
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `Carga (kg) - Série 1`,
+                        data: dataPoints,
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: 'white' } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' } },
+                        y: { ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        // === CALENDÁRIO E METAS ===
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth(); // 0 a 11
+            
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            // Quais os dias que treinei este mês?
+            const trainedDays = history
+                .filter(log => log.date.startsWith(`${year}-${String(month+1).padStart(2, '0')}`))
+                .map(log => parseInt(log.date.split('-')[2])); // Extrai apenas o número do dia
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const isTrained = trainedDays.includes(i);
+                grid.innerHTML += `<div class="day-box ${isTrained ? 'trained' : ''}">${i}</div>`;
+            }
+
+            // Cálculo da meta semanal (Treinos nos últimos 7 dias)
+            let weeklyCount = 0;
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(now.getDate() - 7);
+            
+            history.forEach(log => {
+                const logDate = new Date(log.date);
+                if (logDate >= sevenDaysAgo && logDate <= now) {
+                    weeklyCount++;
+                }
+            });
+
+            // Máximo 6 para visualização (plano PPLx2 = 6 treinos)
+            const displayCount = weeklyCount > 6 ? 6 : weeklyCount; 
+            document.getElementById('weekly-count').innerText = weeklyCount;
+            document.getElementById('weekly-progress').style.width = `${(displayCount / 6) * 100}%`;
+        }
+
+        // Render inicial
         renderWorkout();
     </script>
 </body>
