@@ -1,6 +1,3 @@
-# index.html
-
-```html
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -317,7 +314,6 @@ canvas{
     <button onclick="switchMainView(event,'view-calendario')">Calendário</button>
 </div>
 
-<!-- TREINO -->
 <div id="view-treino" class="view-section active">
 
     <div class="tabs">
@@ -334,7 +330,6 @@ canvas{
     </div>
 </div>
 
-<!-- EVOLUÇÃO -->
 <div id="view-evolucao" class="view-section">
 
     <h2>📈 Progresso</h2>
@@ -366,7 +361,6 @@ canvas{
 
 </div>
 
-<!-- CALENDÁRIO -->
 <div id="view-calendario" class="view-section">
 
     <div class="calendar-header">
@@ -411,7 +405,6 @@ canvas{
 
 </div>
 
-<!-- MODAL -->
 <div id="exercise-modal"
 style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);justify-content:center;align-items:center;padding:20px;z-index:9999;">
 
@@ -527,7 +520,7 @@ const lastPerf=getLastPerformance(ex.name);
 const historyHTML=lastPerf
 ?
 `<div class="history-badge">
-Última vez: ${lastPerf[0].weight}kg x ${lastPerf[0].reps}
+Última vez: ${lastPerf[0].weight}kg x ${lastPerf[0].reps} (RIR: ${lastPerf[0].rir !== undefined ? lastPerf[0].rir : '-'})
 </div>`
 :
 ``;
@@ -659,8 +652,8 @@ const sets=[];
 
 for(let s=1;s<=workoutData[currentDay][exIdx].sets;s++){
 
-const weight=parseFloat(document.getElementById(`weight-${exIdx}-${s}`).value||0);
-const reps=parseInt(document.getElementById(`reps-${exIdx}-${s}`).value||0);
+const weight=parseFloat(document.getElementById(`weight-${exIdx}-${s}`).value||document.getElementById(`weight-${exIdx}-${s}`).placeholder||0);
+const reps=parseInt(document.getElementById(`reps-${exIdx}-${s}`).value||document.getElementById(`reps-${exIdx}-${s}`).placeholder||0);
 const rir=parseInt(document.getElementById(`rir-${exIdx}-${s}`).value||0);
 
 sets.push({weight,reps,rir});
@@ -891,25 +884,29 @@ updateMonthlyGoal();
 }
 
 function toggleTrainingDay(dateString){
+    const existing = history.find(h => h.date === dateString);
 
-const existing=history.find(h=>h.date===dateString);
+    if(existing){
+        // Se o dia tiver exercícios reais registados, pede confirmação
+        if(existing.exercises && Object.keys(existing.exercises).length > 0) {
+            const confirmDelete = confirm("⚠️ Este dia tem um treino gravado com séries reais. Tens a certeza que queres APAGAR todos os dados deste dia?");
+            if(!confirmDelete) return; // Se cancelar, para por aqui
+        }
+        
+        history = history.filter(h => h.date !== dateString);
+    } else {
+        history.push({
+            date: dateString,
+            day: 'MANUAL',
+            exercises: {}
+        });
+    }
 
-if(existing){
-
-history=history.filter(h=>h.date!==dateString);
-
-}else{
-
-history.push({
-date:dateString,
-day:'MANUAL',
-exercises:{}
-});
-}
-
-localStorage.setItem('gym_history',JSON.stringify(history));
-
-renderCalendar();
+    localStorage.setItem('gym_history', JSON.stringify(history));
+    renderCalendar();
+    if(document.getElementById('view-evolucao').classList.contains('active')){
+        updateGlobalStats();
+    }
 }
 
 function updateWeeklyGoal(){
@@ -1037,4 +1034,3 @@ renderWorkout();
 
 </body>
 </html>
-```
